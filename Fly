@@ -1,41 +1,100 @@
-local P=game.Players.LocalPlayer
-local R=game:GetService("RunService")
-local g=Instance.new("ScreenGui",P:WaitForChild("PlayerGui"))
-local on=Instance.new("TextButton",g)
-local sp=Instance.new("TextButton",g)
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
 
-on.Size=UDim2.fromOffset(100,45)
-on.Position=UDim2.new(0,15,0.7,0)
-on.Text="FLY: OFF"
-
-sp.Size=UDim2.fromOffset(100,45)
-sp.Position=UDim2.new(0,15,0.7,55)
-sp.Text="SPEED: 50"
-
-local fly=false
-local speed=50
+local P=Players.LocalPlayer
+local flying=false
+local speed=100
+local up=false
+local down=false
 local bv
 
-on.Activated:Connect(function()
- fly=not fly
- on.Text=fly and "FLY: ON" or "FLY: OFF"
- local c=P.Character
- local r=c and c:FindFirstChild("HumanoidRootPart")
- if fly and r then
-  bv=Instance.new("BodyVelocity",r)
-  bv.MaxForce=Vector3.new(1e6,1e6,1e6)
- elseif bv then bv:Destroy();bv=nil end
+local gui=Instance.new("ScreenGui",P:WaitForChild("PlayerGui"))
+gui.Name="MobileFly"
+
+local frame=Instance.new("Frame",gui)
+frame.Size=UDim2.fromOffset(200,260)
+frame.Position=UDim2.new(0,15,.5,-130)
+frame.BackgroundColor3=Color3.fromRGB(35,20,65)
+Instance.new("UICorner",frame).CornerRadius=UDim.new(0,16)
+
+local function btn(t,y)
+	local b=Instance.new("TextButton",frame)
+	b.Size=UDim2.new(1,-20,0,40)
+	b.Position=UDim2.fromOffset(10,y)
+	b.Text=t
+	b.TextSize=17
+	b.TextColor3=Color3.new(1,1,1)
+	b.BackgroundColor3=Color3.fromRGB(120,50,220)
+	Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+	return b
+end
+
+local fly=btn("🪽 FLY: OFF",10)
+local faster=btn("➕ FASTER",55)
+local slower=btn("➖ SLOWER",100)
+local upBtn=btn("⬆️ UP",145)
+local downBtn=btn("⬇️ DOWN",195)
+
+fly.Activated:Connect(function()
+	flying=not flying
+	fly.Text=flying and "🪽 FLY: ON" or "🪽 FLY: OFF"
+
+	local r=P.Character and P.Character:FindFirstChild("HumanoidRootPart")
+
+	if flying and r then
+		bv=Instance.new("BodyVelocity",r)
+		bv.MaxForce=Vector3.new(1e7,1e7,1e7)
+		bv.Velocity=Vector3.zero
+	elseif bv then
+		bv:Destroy()
+		bv=nil
+	end
 end)
 
-sp.Activated:Connect(function()
- speed=speed==50 and 100 or speed==100 and 200 or 50
- sp.Text="SPEED: "..speed
+faster.Activated:Connect(function()
+	speed=math.min(speed+50,1000)
 end)
 
-R.RenderStepped:Connect(function()
- if fly and bv then
-  local h=P.Character and P.Character:FindFirstChildOfClass("Humanoid")
-  local c=workspace.CurrentCamera
-  if h then bv.Velocity=c.CFrame.LookVector*speed end
- end
+slower.Activated:Connect(function()
+	speed=math.max(speed-50,10)
+end)
+
+local function hold(button,callback)
+	button.InputBegan:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.Touch then
+			callback(true)
+		end
+	end)
+
+	button.InputEnded:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.Touch then
+			callback(false)
+		end
+	end)
+end
+
+hold(upBtn,function(v) up=v end)
+hold(downBtn,function(v) down=v end)
+
+RunService.RenderStepped:Connect(function()
+	if not flying or not bv then return end
+
+	local char=P.Character
+	local hum=char and char:FindFirstChildOfClass("Humanoid")
+
+	if not hum then return end
+
+	local move=hum.MoveDirection
+	local vertical=0
+
+	if up then vertical=1 end
+	if down then vertical=-1 end
+
+	local direction=move+Vector3.new(0,vertical,0)
+
+	if direction.Magnitude>0 then
+		bv.Velocity=direction.Unit*speed
+	else
+		bv.Velocity=Vector3.zero
+	end
 end)
