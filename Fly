@@ -1,0 +1,41 @@
+local P=game.Players.LocalPlayer
+local R=game:GetService("RunService")
+local g=Instance.new("ScreenGui",P:WaitForChild("PlayerGui"))
+local on=Instance.new("TextButton",g)
+local sp=Instance.new("TextButton",g)
+
+on.Size=UDim2.fromOffset(100,45)
+on.Position=UDim2.new(0,15,0.7,0)
+on.Text="FLY: OFF"
+
+sp.Size=UDim2.fromOffset(100,45)
+sp.Position=UDim2.new(0,15,0.7,55)
+sp.Text="SPEED: 50"
+
+local fly=false
+local speed=50
+local bv
+
+on.Activated:Connect(function()
+ fly=not fly
+ on.Text=fly and "FLY: ON" or "FLY: OFF"
+ local c=P.Character
+ local r=c and c:FindFirstChild("HumanoidRootPart")
+ if fly and r then
+  bv=Instance.new("BodyVelocity",r)
+  bv.MaxForce=Vector3.new(1e6,1e6,1e6)
+ elseif bv then bv:Destroy();bv=nil end
+end)
+
+sp.Activated:Connect(function()
+ speed=speed==50 and 100 or speed==100 and 200 or 50
+ sp.Text="SPEED: "..speed
+end)
+
+R.RenderStepped:Connect(function()
+ if fly and bv then
+  local h=P.Character and P.Character:FindFirstChildOfClass("Humanoid")
+  local c=workspace.CurrentCamera
+  if h then bv.Velocity=c.CFrame.LookVector*speed end
+ end
+end)
