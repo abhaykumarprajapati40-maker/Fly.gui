@@ -1,0 +1,99 @@
+local Players=game:GetService("Players")
+local RunService=game:GetService("RunService")
+
+local P=Players.LocalPlayer
+local flying=false
+local speed=100
+local up=false
+local down=false
+local bv
+
+local gui=Instance.new("ScreenGui",P:WaitForChild("PlayerGui"))
+gui.Name="MobileFly"
+
+local frame=Instance.new("Frame",gui)
+frame.Size=UDim2.fromOffset(190,210)
+frame.Position=UDim2.new(0,15,.5,-105)
+frame.BackgroundColor3=Color3.fromRGB(35,20,65)
+Instance.new("UICorner",frame).CornerRadius=UDim.new(0,16)
+
+local function btn(t,y)
+	local b=Instance.new("TextButton",frame)
+	b.Size=UDim2.new(1,-20,0,40)
+	b.Position=UDim2.fromOffset(10,y)
+	b.Text=t
+	b.TextSize=17
+	b.TextColor3=Color3.new(1,1,1)
+	b.BackgroundColor3=Color3.fromRGB(120,50,220)
+	Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
+	return b
+end
+
+local fly=btn("🪽 FLY: OFF",10)
+local fast=btn("⚡ SPEED: 100",55)
+local upBtn=btn("⬆️ UP",100)
+local downBtn=btn("⬇️ DOWN",150)
+
+fly.Activated:Connect(function()
+	flying=not flying
+	fly.Text=flying and "🪽 FLY: ON" or "🪽 FLY: OFF"
+
+	local r=P.Character and P.Character:FindFirstChild("HumanoidRootPart")
+
+	if flying and r then
+		bv=Instance.new("BodyVelocity",r)
+		bv.MaxForce=Vector3.new(1e7,1e7,1e7)
+		bv.Velocity=Vector3.zero
+	elseif bv then
+		bv:Destroy()
+		bv=nil
+	end
+end)
+
+fast.Activated:Connect(function()
+	speed=math.min(speed+100,1000)
+	fast.Text="⚡ SPEED: "..speed
+end)
+
+local function hold(button,callback)
+	button.InputBegan:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.Touch then
+			callback(true)
+		end
+	end)
+	button.InputEnded:Connect(function(i)
+		if i.UserInputType==Enum.UserInputType.Touch then
+			callback(false)
+		end
+	end)
+end
+
+hold(upBtn,function(v) up=v end)
+hold(downBtn,function(v) down=v end)
+
+RunService.RenderStepped:Connect(function()
+	if not flying or not bv then return end
+
+	local char=P.Character
+	local hum=char and char:FindFirstChildOfClass("Humanoid")
+	local cam=workspace.CurrentCamera
+	if not hum then return end
+
+	local move=hum.MoveDirection
+	local vertical=0
+
+	if up then vertical=1 end
+	if down then vertical=-1 end
+
+	local direction=move
+
+	if vertical~=0 then
+		direction=direction+Vector3.new(0,vertical,0)
+	end
+
+	if direction.Magnitude>0 then
+		bv.Velocity=direction.Unit*speed
+	else
+		bv.Velocity=Vector3.zero
+	end
+end)
