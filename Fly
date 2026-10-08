@@ -1,100 +1,186 @@
-local Players=game:GetService("Players")
-local RunService=game:GetService("RunService")
+--// Fly GUI v3 (Ultra-Compact, Merged, Mobile Neon Edition)
+--// Small enough for your thumb/pinky, fully draggable, speed 1 to 100
 
-local P=Players.LocalPlayer
-local flying=false
-local speed=100
-local up=false
-local down=false
-local bv
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
-local gui=Instance.new("ScreenGui",P:WaitForChild("PlayerGui"))
-gui.Name="MobileFly"
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
 
-local frame=Instance.new("Frame",gui)
-frame.Size=UDim2.fromOffset(200,260)
-frame.Position=UDim2.new(0,15,.5,-130)
-frame.BackgroundColor3=Color3.fromRGB(35,20,65)
-Instance.new("UICorner",frame).CornerRadius=UDim.new(0,16)
+local flying = false
+local speed = 1 -- Starts at 1, max 100
 
-local function btn(t,y)
-	local b=Instance.new("TextButton",frame)
-	b.Size=UDim2.new(1,-20,0,40)
-	b.Position=UDim2.fromOffset(10,y)
-	b.Text=t
-	b.TextSize=17
-	b.TextColor3=Color3.new(1,1,1)
-	b.BackgroundColor3=Color3.fromRGB(120,50,220)
-	Instance.new("UICorner",b).CornerRadius=UDim.new(0,10)
-	return b
-end
+local bodyVelocity, bodyGyro
 
-local fly=btn("🪽 FLY: OFF",10)
-local faster=btn("➕ FASTER",55)
-local slower=btn("➖ SLOWER",100)
-local upBtn=btn("⬆️ UP",145)
-local downBtn=btn("⬇️ DOWN",195)
+--// ScreenGui Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CompactFlyGuiV3"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-fly.Activated:Connect(function()
-	flying=not flying
-	fly.Text=flying and "🪽 FLY: ON" or "🪽 FLY: OFF"
+--// Main Merged Container (Small, compact, draggable anywhere)
+local mainCard = Instance.new("Frame")
+mainCard.Name = "MainCard"
+mainCard.Size = UDim2.new(0, 140, 0, 75)
+mainCard.Position = UDim2.new(0.5, -70, 0, 15)
+mainCard.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainCard.BackgroundTransparency = 0.2
+mainCard.BorderSizePixel = 0
+mainCard.Draggable = true -- Draggable anywhere on screen
+mainCard.Active = true
+mainCard.Parent = screenGui
 
-	local r=P.Character and P.Character:FindFirstChild("HumanoidRootPart")
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 12)
+cardCorner.Parent = mainCard
 
-	if flying and r then
-		bv=Instance.new("BodyVelocity",r)
-		bv.MaxForce=Vector3.new(1e7,1e7,1e7)
-		bv.Velocity=Vector3.zero
-	elseif bv then
-		bv:Destroy()
-		bv=nil
+-- Neon Accent Border
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(138, 43, 226) -- Cyber Purple Glow
+stroke.Thickness = 2
+stroke.Parent = mainCard
+
+--// 1. Fly Toggle Button (Top Half)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "FlyToggle"
+toggleBtn.Size = UDim2.new(1, -10, 0, 30)
+toggleBtn.Position = UDim2.new(0, 5, 0, 5)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 13
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Text = "FLY: OFF"
+toggleBtn.Parent = mainCard
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 8)
+toggleCorner.Parent = toggleBtn
+
+--// Speed Controls Holder (Bottom Half)
+local speedHolder = Instance.new("Frame")
+speedHolder.Name = "SpeedHolder"
+speedHolder.Size = UDim2.new(1, -10, 0, 30)
+speedHolder.Position = UDim2.new(0, 5, 0, 40)
+speedHolder.BackgroundTransparency = 1
+speedHolder.Parent = mainCard
+
+-- Minus Button (-)
+local minusBtn = Instance.new("TextButton")
+minusBtn.Name = "Minus"
+minusBtn.Size = UDim2.new(0, 30, 0, 30)
+minusBtn.Position = UDim2.new(0, 0, 0, 0)
+minusBtn.BackgroundColor3 = Color3.fromRGB(255, 75, 75) -- Neon Red/Pink
+minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minusBtn.TextSize = 16
+minusBtn.Font = Enum.Font.GothamBold
+minusBtn.Text = "-"
+minusBtn.Parent = speedHolder
+
+local minusCorner = Instance.new("UICorner")
+minusCorner.CornerRadius = UDim.new(0, 6)
+minusCorner.Parent = minusBtn
+
+-- Speed Display Label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Name = "SpeedLabel"
+speedLabel.Size = UDim2.new(0, 60, 0, 30)
+speedLabel.Position = UDim2.new(0, 35, 0, 0)
+speedLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+speedLabel.TextColor3 = Color3.fromRGB(0, 255, 204) -- Electric Cyan text
+speedLabel.TextSize = 12
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.Text = "SPD: 1"
+speedLabel.Parent = speedHolder
+
+local labelCorner = Instance.new("UICorner")
+labelCorner.CornerRadius = UDim.new(0, 6)
+labelCorner.Parent = speedLabel
+
+-- Plus Button (+)
+local plusBtn = Instance.new("TextButton")
+plusBtn.Name = "Plus"
+plusBtn.Size = UDim2.new(0, 30, 0, 30)
+plusBtn.Position = UDim2.new(0, 100, 0, 0)
+plusBtn.BackgroundColor3 = Color3.fromRGB(0, 204, 102) -- Neon Green
+plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+plusBtn.TextSize = 16
+plusBtn.Font = Enum.Font.GothamBold
+plusBtn.Text = "+"
+plusBtn.Parent = speedHolder
+
+local plusCorner = Instance.new("UICorner")
+plusCorner.CornerRadius = UDim.new(0, 6)
+plusCorner.Parent = plusBtn
+
+--// Speed Logic (1 to 100)
+plusBtn.MouseButton1Click:Connect(function()
+	if speed < 100 then
+		speed = speed + 1
+		speedLabel.Text = "SPD: " .. speed
 	end
 end)
 
-faster.Activated:Connect(function()
-	speed=math.min(speed+50,1000)
+minusBtn.MouseButton1Click:Connect(function()
+	if speed > 1 then
+		speed = speed - 1
+		speedLabel.Text = "SPD: " .. speed
+	end
 end)
 
-slower.Activated:Connect(function()
-	speed=math.max(speed-50,10)
-end)
-
-local function hold(button,callback)
-	button.InputBegan:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.Touch then
-			callback(true)
+--// Toggle Flight Function
+local function toggleFlight()
+	flying = not flying
+	toggleBtn.Text = flying and "FLY: ON" or "FLY: OFF"
+	toggleBtn.BackgroundColor3 = flying and Color3.fromRGB(0, 204, 102) or Color3.fromRGB(45, 45, 65)
+	stroke.Color = flying and Color3.fromRGB(0, 255, 204) or Color3.fromRGB(138, 43, 226)
+	
+	local character = player.Character
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		local rootPart = character.HumanoidRootPart
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		
+		if flying then
+			humanoid.PlatformStand = true
+			
+			bodyVelocity = Instance.new("BodyVelocity")
+			bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+			bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+			bodyVelocity.Parent = rootPart
+			
+			bodyGyro = Instance.new("BodyGyro")
+			bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+			bodyGyro.P = 10000
+			bodyGyro.Parent = rootPart
+		else
+			humanoid.PlatformStand = false
+			if bodyVelocity then bodyVelocity:Destroy() end
+			if bodyGyro then bodyGyro:Destroy() end
 		end
-	end)
-
-	button.InputEnded:Connect(function(i)
-		if i.UserInputType==Enum.UserInputType.Touch then
-			callback(false)
-		end
-	end)
+	end
 end
 
-hold(upBtn,function(v) up=v end)
-hold(downBtn,function(v) down=v end)
+toggleBtn.MouseButton1Click:Connect(toggleFlight)
 
+--// Flight Loop
 RunService.RenderStepped:Connect(function()
-	if not flying or not bv then return end
-
-	local char=P.Character
-	local hum=char and char:FindFirstChildOfClass("Humanoid")
-
-	if not hum then return end
-
-	local move=hum.MoveDirection
-	local vertical=0
-
-	if up then vertical=1 end
-	if down then vertical=-1 end
-
-	local direction=move+Vector3.new(0,vertical,0)
-
-	if direction.Magnitude>0 then
-		bv.Velocity=direction.Unit*speed
+	if not flying then return end
+	
+	local character = player.Character
+	if not character then return end
+	local rootPart = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not rootPart or not humanoid or not bodyVelocity or not bodyGyro then return end
+	
+	local moveDir = humanoid.MoveDirection
+	local cf = camera.CFrame
+	
+	if moveDir.Magnitude > 0 then
+		local directionalVelocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * speed
+		bodyVelocity.Velocity = directionalVelocity
 	else
-		bv.Velocity=Vector3.zero
+		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
 	end
+	
+	bodyGyro.CFrame = cf
 end)
