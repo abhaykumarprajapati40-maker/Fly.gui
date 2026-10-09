@@ -1,5 +1,5 @@
---// Fly GUI v3 (Ultra-Compact, Merged, Mobile Neon Edition)
---// Small enough for your thumb/pinky, fully draggable, speed 1 to 100
+--// Fly GUI v3 (RGB Rainbow Gaming Edition)
+--// Small, compact, draggable, speed 1 to 100 with dynamic RGB border
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -22,12 +22,12 @@ screenGui.Parent = player:WaitForChild("PlayerGui")
 --// Main Merged Container (Small, compact, draggable anywhere)
 local mainCard = Instance.new("Frame")
 mainCard.Name = "MainCard"
-mainCard.Size = UDim2.new(0, 140, 0, 75)
-mainCard.Position = UDim2.new(0.5, -70, 0, 15)
-mainCard.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-mainCard.BackgroundTransparency = 0.2
+mainCard.Size = UDim2.new(0, 150, 0, 75)
+mainCard.Position = UDim2.new(0.5, -75, 0, 15)
+mainCard.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+mainCard.BackgroundTransparency = 0.15
 mainCard.BorderSizePixel = 0
-mainCard.Draggable = true -- Draggable anywhere on screen
+mainCard.Draggable = true
 mainCard.Active = true
 mainCard.Parent = screenGui
 
@@ -35,18 +35,17 @@ local cardCorner = Instance.new("UICorner")
 cardCorner.CornerRadius = UDim.new(0, 12)
 cardCorner.Parent = mainCard
 
--- Neon Accent Border
+--// RGB Glowing Border Stroke
 local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(138, 43, 226) -- Cyber Purple Glow
-stroke.Thickness = 2
+stroke.Thickness = 2.5
 stroke.Parent = mainCard
 
---// 1. Fly Toggle Button (Top Half)
+--// 1. Fly Toggle Button (Top Row)
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Name = "FlyToggle"
 toggleBtn.Size = UDim2.new(1, -10, 0, 30)
 toggleBtn.Position = UDim2.new(0, 5, 0, 5)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.TextSize = 13
 toggleBtn.Font = Enum.Font.GothamBold
@@ -57,7 +56,7 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 8)
 toggleCorner.Parent = toggleBtn
 
---// Speed Controls Holder (Bottom Half)
+--// Speed Controls Holder (Bottom Row)
 local speedHolder = Instance.new("Frame")
 speedHolder.Name = "SpeedHolder"
 speedHolder.Size = UDim2.new(1, -10, 0, 30)
@@ -70,8 +69,8 @@ local minusBtn = Instance.new("TextButton")
 minusBtn.Name = "Minus"
 minusBtn.Size = UDim2.new(0, 30, 0, 30)
 minusBtn.Position = UDim2.new(0, 0, 0, 0)
-minusBtn.BackgroundColor3 = Color3.fromRGB(255, 75, 75) -- Neon Red/Pink
-minusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minusBtn.BackgroundColor3 = Color3.fromRGB(45, 30, 45)
+minusBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 minusBtn.TextSize = 16
 minusBtn.Font = Enum.Font.GothamBold
 minusBtn.Text = "-"
@@ -84,10 +83,10 @@ minusCorner.Parent = minusBtn
 -- Speed Display Label
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Name = "SpeedLabel"
-speedLabel.Size = UDim2.new(0, 60, 0, 30)
+speedLabel.Size = UDim2.new(0, 70, 0, 30)
 speedLabel.Position = UDim2.new(0, 35, 0, 0)
-speedLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-speedLabel.TextColor3 = Color3.fromRGB(0, 255, 204) -- Electric Cyan text
+speedLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+speedLabel.TextColor3 = Color3.fromRGB(0, 255, 204)
 speedLabel.TextSize = 12
 speedLabel.Font = Enum.Font.GothamBold
 speedLabel.Text = "SPD: 1"
@@ -101,9 +100,9 @@ labelCorner.Parent = speedLabel
 local plusBtn = Instance.new("TextButton")
 plusBtn.Name = "Plus"
 plusBtn.Size = UDim2.new(0, 30, 0, 30)
-plusBtn.Position = UDim2.new(0, 100, 0, 0)
-plusBtn.BackgroundColor3 = Color3.fromRGB(0, 204, 102) -- Neon Green
-plusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+plusBtn.Position = UDim2.new(0, 110, 0, 0)
+plusBtn.BackgroundColor3 = Color3.fromRGB(30, 45, 35)
+plusBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
 plusBtn.TextSize = 16
 plusBtn.Font = Enum.Font.GothamBold
 plusBtn.Text = "+"
@@ -132,8 +131,7 @@ end)
 local function toggleFlight()
 	flying = not flying
 	toggleBtn.Text = flying and "FLY: ON" or "FLY: OFF"
-	toggleBtn.BackgroundColor3 = flying and Color3.fromRGB(0, 204, 102) or Color3.fromRGB(45, 45, 65)
-	stroke.Color = flying and Color3.fromRGB(0, 255, 204) or Color3.fromRGB(138, 43, 226)
+	toggleBtn.BackgroundColor3 = flying and Color3.fromRGB(0, 180, 90) or Color3.fromRGB(30, 30, 45)
 	
 	local character = player.Character
 	if character and character:FindFirstChild("HumanoidRootPart") then
@@ -162,8 +160,12 @@ end
 
 toggleBtn.MouseButton1Click:Connect(toggleFlight)
 
---// Flight Loop
-RunService.RenderStepped:Connect(function()
+--// RGB Color Cycle & Flight Movement Loop
+RunService.RenderStepped:Connect(function(dt)
+	-- Smoothly cycle the RGB stroke border color using tick() time
+	local hue = (tick() % 5) / 5
+	stroke.Color = Color3.fromHSV(hue, 1, 1)
+	
 	if not flying then return end
 	
 	local character = player.Character
@@ -174,13 +176,12 @@ RunService.RenderStepped:Connect(function()
 	
 	local moveDir = humanoid.MoveDirection
 	local cf = camera.CFrame
+	local velocity = Vector3.new(0, 0, 0)
 	
 	if moveDir.Magnitude > 0 then
-		local directionalVelocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * speed
-		bodyVelocity.Velocity = directionalVelocity
-	else
-		bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+		velocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * (speed * 2)
 	end
 	
+	bodyVelocity.Velocity = velocity
 	bodyGyro.CFrame = cf
 end)
