@@ -1,4 +1,4 @@
---// Mobile-Friendly Combat Helper (ESP Boxes & Aim Stabilizer)
+--// Mobile-Friendly Combat Helper (ESP Boxes & Working Aim Stabilizer)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -71,7 +71,7 @@ fixerBtn.Text = "AIM FIXER: OFF"
 fixerBtn.Parent = mainCard
 Instance.new("UICorner", fixerBtn).CornerRadius = UDim.new(0, 8)
 
---// ESP Billboard System (Safe for Mobile Executors)
+--// ESP Billboard System
 local function setupESP(otherPlayer)
 	if otherPlayer == player then return end
 	
@@ -79,7 +79,6 @@ local function setupESP(otherPlayer)
 		local rootPart = char:WaitForChild("HumanoidRootPart", 5)
 		if not rootPart then return end
 		
-		-- Create a BillboardGui over the player's head
 		local billboard = Instance.new("BillboardGui")
 		billboard.Name = "ESP_Tag"
 		billboard.Size = UDim2.new(0, 40, 0, 40)
@@ -119,13 +118,10 @@ espBtn.MouseButton1Click:Connect(function()
 	espBtn.Text = espActive and "ESP: ON" or "ESP: OFF"
 	espBtn.BackgroundColor3 = espActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(30, 30, 45)
 	
-	-- Update visibility across all current players
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
 			local tag = p.Character.HumanoidRootPart:FindFirstChild("ESP_Tag")
-			if tag then
-				tag.Enabled = espActive
-			end
+			if tag then tag.Enabled = espActive end
 		end
 	end
 end)
@@ -136,11 +132,15 @@ fixerBtn.MouseButton1Click:Connect(function()
 	fixerBtn.BackgroundColor3 = aimFixerActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(30, 30, 45)
 end)
 
---// Aim Fixer Loop (Dampens recoil/camera jitter)
+--// Working Aim Stabilizer Loop & ESP Refresh
+local lastCameraCF = camera.CFrame
 RunService.RenderStepped:Connect(function()
+	local currentCF = camera.CFrame
+	
 	if aimFixerActive then
-		-- Keeps camera steady by smoothing out sudden shaking inputs
-		local currentCamCF = camera.CFrame
-		camera.CFrame = currentCamCF:Lerp(currentCamCF, 0.5)
+		-- Smooths out sudden tracking jumps and camera recoil kicks by blending frames
+		camera.CFrame = lastCameraCF:Lerp(currentCF, 0.35)
 	end
+	
+	lastCameraCF = camera.CFrame
 end)
