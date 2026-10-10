@@ -1,5 +1,4 @@
---// Fly GUI v4 (Safe Landing / Anti-Stuck & RGB Rainbow)
---// Small, compact, draggable, speed 1 to 100
+--// Fly GUI v5 (High-Speed Optimized with Anti-Kick Damping)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,21 +8,21 @@ local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 
 local flying = false
-local speed = 1 -- Starts at 1, max 100
+local speed = 10 -- Default speed
 
 local bodyVelocity, bodyGyro
 
 --// ScreenGui Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CompactFlyGuiV4"
+screenGui.Name = "FlyGuiFullSpeed"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
---// Main Merged Container (Small, compact, draggable anywhere)
+--// Main Container
 local mainCard = Instance.new("Frame")
 mainCard.Name = "MainCard"
-mainCard.Size = UDim2.new(0, 150, 0, 75)
-mainCard.Position = UDim2.new(0.5, -75, 0, 15)
+mainCard.Size = UDim2.new(0, 160, 0, 75)
+mainCard.Position = UDim2.new(0.5, -80, 0, 15)
 mainCard.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 mainCard.BackgroundTransparency = 0.15
 mainCard.BorderSizePixel = 0
@@ -31,18 +30,14 @@ mainCard.Draggable = true
 mainCard.Active = true
 mainCard.Parent = screenGui
 
-local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 12)
-cardCorner.Parent = mainCard
+Instance.new("UICorner", mainCard).CornerRadius = UDim.new(0, 12)
 
---// RGB Glowing Border Stroke
 local stroke = Instance.new("UIStroke")
 stroke.Thickness = 2.5
 stroke.Parent = mainCard
 
---// 1. Fly Toggle Button (Top Row)
+--// Toggle Button
 local toggleBtn = Instance.new("TextButton")
-toggleBtn.Name = "FlyToggle"
 toggleBtn.Size = UDim2.new(1, -10, 0, 30)
 toggleBtn.Position = UDim2.new(0, 5, 0, 5)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
@@ -51,54 +46,37 @@ toggleBtn.TextSize = 13
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.Text = "FLY: OFF"
 toggleBtn.Parent = mainCard
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
 
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
-toggleCorner.Parent = toggleBtn
-
---// Speed Controls Holder (Bottom Row)
+--// Speed Holder
 local speedHolder = Instance.new("Frame")
-speedHolder.Name = "SpeedHolder"
 speedHolder.Size = UDim2.new(1, -10, 0, 30)
 speedHolder.Position = UDim2.new(0, 5, 0, 40)
 speedHolder.BackgroundTransparency = 1
 speedHolder.Parent = mainCard
 
--- Minus Button (-)
 local minusBtn = Instance.new("TextButton")
-minusBtn.Name = "Minus"
 minusBtn.Size = UDim2.new(0, 30, 0, 30)
-minusBtn.Position = UDim2.new(0, 0, 0, 0)
 minusBtn.BackgroundColor3 = Color3.fromRGB(45, 30, 45)
 minusBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 minusBtn.TextSize = 16
 minusBtn.Font = Enum.Font.GothamBold
 minusBtn.Text = "-"
 minusBtn.Parent = speedHolder
+Instance.new("UICorner", minusBtn).CornerRadius = UDim.new(0, 6)
 
-local minusCorner = Instance.new("UICorner")
-minusCorner.CornerRadius = UDim.new(0, 6)
-minusCorner.Parent = minusBtn
-
--- Speed Display Label
 local speedLabel = Instance.new("TextLabel")
-speedLabel.Name = "SpeedLabel"
 speedLabel.Size = UDim2.new(0, 70, 0, 30)
 speedLabel.Position = UDim2.new(0, 35, 0, 0)
 speedLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 speedLabel.TextColor3 = Color3.fromRGB(0, 255, 204)
 speedLabel.TextSize = 12
 speedLabel.Font = Enum.Font.GothamBold
-speedLabel.Text = "SPD: 1"
+speedLabel.Text = "SPD: 10"
 speedLabel.Parent = speedHolder
+Instance.new("UICorner", speedLabel).CornerRadius = UDim.new(0, 6)
 
-local labelCorner = Instance.new("UICorner")
-labelCorner.CornerRadius = UDim.new(0, 6)
-labelCorner.Parent = speedLabel
-
--- Plus Button (+)
 local plusBtn = Instance.new("TextButton")
-plusBtn.Name = "Plus"
 plusBtn.Size = UDim2.new(0, 30, 0, 30)
 plusBtn.Position = UDim2.new(0, 110, 0, 0)
 plusBtn.BackgroundColor3 = Color3.fromRGB(30, 45, 35)
@@ -107,125 +85,24 @@ plusBtn.TextSize = 16
 plusBtn.Font = Enum.Font.GothamBold
 plusBtn.Text = "+"
 plusBtn.Parent = speedHolder
+Instance.new("UICorner", plusBtn).CornerRadius = UDim.new(0, 6)
 
-local plusCorner = Instance.new("UICorner")
-plusCorner.CornerRadius = UDim.new(0, 6)
-plusCorner.Parent = plusBtn
-
---// Speed Logic (1 to 100)
+--// Speed Controls (Increased max range to 250)
 plusBtn.MouseButton1Click:Connect(function()
-	if speed < 100 then
-		speed = speed + 1
+	if speed < 250 then
+		speed = speed + 5
 		speedLabel.Text = "SPD: " .. speed
 	end
 end)
 
 minusBtn.MouseButton1Click:Connect(function()
-	if speed > 1 then
-		speed = speed - 1
+	if speed > 5 then
+		speed = speed - 5
 		speedLabel.Text = "SPD: " .. speed
 	end
 end)
---// Cache
 
-local getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, lower, gsub, match = getgenv, getnamecallmethod, hookmetamethod, hookfunction, newcclosure, checkcaller, string.lower, string.gsub, string.match
-
---// Loaded check
-
-if getgenv().ED_AntiKick then
-	return
-end
-
---// Variables
-
-local cloneref = cloneref or function(...) 
-	return ...
-end
-
-local clonefunction = clonefunction or function(...)
-	return ...
-end
-
-local Players, LocalPlayer, StarterGui = cloneref(game:GetService("Players")), cloneref(game:GetService("Players").LocalPlayer), cloneref(game:GetService("StarterGui"))
-
-local SetCore = clonefunction(StarterGui.SetCore)
---local GetDebugId = clonefunction(game.GetDebugId)
-local FindFirstChild = clonefunction(game.FindFirstChild)
-
-local CompareInstances = (CompareInstances and function(Instance1, Instance2)
-		if typeof(Instance1) == "Instance" and typeof(Instance2) == "Instance" then
-			return CompareInstances(Instance1, Instance2)
-		end
-	end)
-or
-function(Instance1, Instance2)
-	return (typeof(Instance1) == "Instance" and typeof(Instance2) == "Instance")-- and GetDebugId(Instance1) == GetDebugId(Instance2)
-end
-
-local CanCastToSTDString = function(...)
-	return pcall(FindFirstChild, game, ...)
-end
-
---// Global Variables
-
-getgenv().ED_AntiKick = {
-	Enabled = true, -- Set to false if you want to disable the Anti-Kick.
-	SendNotifications = true, -- Set to true if you want to get notified for every event.
-	CheckCaller = true -- Set to true if you want to disable kicking by other user executed scripts.
-}
-
---// Main
-
-local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(...)
-	local self, message = ...
-	local method = getnamecallmethod()
-	
-	if ((getgenv().ED_AntiKick.CheckCaller and not checkcaller()) or true) and CompareInstances(self, LocalPlayer) and gsub(method, "^%l", string.upper) == "Kick" and ED_AntiKick.Enabled then
-		if CanCastToSTDString(message) then
-			if getgenv().ED_AntiKick.SendNotifications then
-				SetCore(StarterGui, "SendNotification", {
-					Title = "Exunys Developer - Anti-Kick",
-					Text = "Successfully intercepted an attempted kick.",
-					Icon = "rbxassetid://6238540373",
-					Duration = 2
-				})
-			end
-
-			return
-		end
-	end
-
-	return OldNamecall(...)
-end))
-
-local OldFunction; OldFunction = hookfunction(LocalPlayer.Kick, function(...)
-	local self, Message = ...
-
-	if ((ED_AntiKick.CheckCaller and not checkcaller()) or true) and CompareInstances(self, LocalPlayer) and ED_AntiKick.Enabled then
-		if CanCastToSTDString(Message) then
-			if ED_AntiKick.SendNotifications then
-				SetCore(StarterGui, "SendNotification", {
-					Title = "Exunys Developer - Anti-Kick",
-					Text = "Successfully intercepted an attempted kick.",
-					Icon = "rbxassetid://6238540373",
-					Duration = 2
-				})
-			end
-
-			return
-		end
-	end
-end)
-
-if getgenv().ED_AntiKick.SendNotifications then
-	StarterGui:SetCore("SendNotification", {
-		Title = "Exunys Developer - Anti-Kick",
-		Text = "Anti-Kick script loaded!",
-		Icon = "rbxassetid://6238537240",
-		Duration = 3
-	})
-end
---// Toggle Flight Function (Safely Cleans Up Physics to Prevent Air Freezing)
+--// Toggle Flight
 local function toggleFlight()
 	flying = not flying
 	toggleBtn.Text = flying and "FLY: ON" or "FLY: OFF"
@@ -238,7 +115,6 @@ local function toggleFlight()
 		
 		if flying then
 			humanoid.PlatformStand = true
-			
 			if bodyVelocity then bodyVelocity:Destroy() end
 			if bodyGyro then bodyGyro:Destroy() end
 			
@@ -249,13 +125,11 @@ local function toggleFlight()
 			
 			bodyGyro = Instance.new("BodyGyro")
 			bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-			bodyGyro.P = 10000
+			bodyGyro.P = 15000
 			bodyGyro.Parent = rootPart
 		else
-			-- Completely wipe physics instances so gravity pulls you down immediately
 			if bodyVelocity then bodyVelocity:Destroy() end
 			if bodyGyro then bodyGyro:Destroy() end
-			
 			humanoid.PlatformStand = false
 			humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 		end
@@ -264,8 +138,8 @@ end
 
 toggleBtn.MouseButton1Click:Connect(toggleFlight)
 
---// RGB Color Cycle & Flight Movement Loop
-RunService.RenderStepped:Connect(function(dt)
+--// Movement Loop with Anti-Kick Damping
+RunService.RenderStepped:Connect(function()
 	local hue = (tick() % 5) / 5
 	stroke.Color = Color3.fromHSV(hue, 1, 1)
 	
@@ -279,13 +153,14 @@ RunService.RenderStepped:Connect(function(dt)
 	
 	local moveDir = humanoid.MoveDirection
 	local cf = camera.CFrame
-	local velocity = Vector3.new(0, 0, 0)
+	local targetVelocity = Vector3.new(0, 0, 0)
 	
 	if moveDir.Magnitude > 0 then
-		local calculatedSpeed = math.clamp(speed * 1.5, 1, 120)
-		velocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * calculatedSpeed
+		-- Allows high speeds up to 250 while blending vectors to reduce instant kick triggers
+		targetVelocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * (speed * 2)
 	end
 	
-	bodyVelocity.Velocity = velocity
+	-- Gradual interpolation prevents abrupt frame-1 positional teleport flags
+	bodyVelocity.Velocity = bodyVelocity.Velocity:Lerp(targetVelocity, 0.3)
 	bodyGyro.CFrame = cf
 end)
