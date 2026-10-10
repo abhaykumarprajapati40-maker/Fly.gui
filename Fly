@@ -1,5 +1,5 @@
---// Fly GUI v3 (RGB Rainbow Gaming Edition)
---// Small, compact, draggable, speed 1 to 100 with dynamic RGB border
+--// Fly GUI v4 (Safe Landing / Anti-Stuck & RGB Rainbow)
+--// Small, compact, draggable, speed 1 to 100
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -15,7 +15,7 @@ local bodyVelocity, bodyGyro
 
 --// ScreenGui Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CompactFlyGuiV3"
+screenGui.Name = "CompactFlyGuiV4"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
@@ -127,7 +127,7 @@ minusBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
---// Toggle Flight Function
+--// Toggle Flight Function (Safely Cleans Up Physics to Prevent Air Freezing)
 local function toggleFlight()
 	flying = not flying
 	toggleBtn.Text = flying and "FLY: ON" or "FLY: OFF"
@@ -141,6 +141,9 @@ local function toggleFlight()
 		if flying then
 			humanoid.PlatformStand = true
 			
+			if bodyVelocity then bodyVelocity:Destroy() end
+			if bodyGyro then bodyGyro:Destroy() end
+			
 			bodyVelocity = Instance.new("BodyVelocity")
 			bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
 			bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -151,9 +154,12 @@ local function toggleFlight()
 			bodyGyro.P = 10000
 			bodyGyro.Parent = rootPart
 		else
-			humanoid.PlatformStand = false
+			-- Completely wipe physics instances so gravity pulls you down immediately
 			if bodyVelocity then bodyVelocity:Destroy() end
 			if bodyGyro then bodyGyro:Destroy() end
+			
+			humanoid.PlatformStand = false
+			humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 		end
 	end
 end
@@ -162,7 +168,6 @@ toggleBtn.MouseButton1Click:Connect(toggleFlight)
 
 --// RGB Color Cycle & Flight Movement Loop
 RunService.RenderStepped:Connect(function(dt)
-	-- Smoothly cycle the RGB stroke border color using tick() time
 	local hue = (tick() % 5) / 5
 	stroke.Color = Color3.fromHSV(hue, 1, 1)
 	
@@ -179,7 +184,8 @@ RunService.RenderStepped:Connect(function(dt)
 	local velocity = Vector3.new(0, 0, 0)
 	
 	if moveDir.Magnitude > 0 then
-		velocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * (speed * 2)
+		local calculatedSpeed = math.clamp(speed * 1.5, 1, 120)
+		velocity = (cf.RightVector * moveDir.X + cf.LookVector * -moveDir.Z) * calculatedSpeed
 	end
 	
 	bodyVelocity.Velocity = velocity
