@@ -1,6 +1,6 @@
---// ESP, Silent Head-Shot Aimbot, & Aim Fixer GUI (Mobile Optimized)
+--// Mobile-Friendly Combat Helper (ESP Boxes & Aim Stabilizer)
 
-local Players = Service("Players") if not Players then Players = game:GetService("Players") end
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -8,21 +8,18 @@ local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
 
 local espActive = false
-local aimbotActive = false
 local aimFixerActive = false
-
-local espCache = {}
 
 --// ScreenGui Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CombatHelperAdvanced"
+screenGui.Name = "SimpleCombatGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 --// Main Container
 local mainCard = Instance.new("Frame")
 mainCard.Name = "MainCard"
-mainCard.Size = UDim2.new(0, 160, 0, 150)
+mainCard.Size = UDim2.new(0, 160, 0, 115)
 mainCard.Position = UDim2.new(0.5, -80, 0.3, 0)
 mainCard.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 mainCard.BackgroundTransparency = 0.15
@@ -47,12 +44,12 @@ titleLabel.BackgroundTransparency = 1
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 13
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.Text = "PRO COMBAT GUI"
+titleLabel.Text = "COMBAT HELPER"
 titleLabel.Parent = mainCard
 
 --// ESP Toggle Button
 local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(1, -10, 0, 32)
+espBtn.Size = UDim2.new(1, -10, 0, 35)
 espBtn.Position = UDim2.new(0, 5, 0, 30)
 espBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 espBtn.TextColor3 = Color3.fromRGB(150, 150, 255)
@@ -62,22 +59,10 @@ espBtn.Text = "ESP: OFF"
 espBtn.Parent = mainCard
 Instance.new("UICorner", espBtn).CornerRadius = UDim.new(0, 8)
 
---// Silent Head Aimbot Toggle Button
-local aimbotBtn = Instance.new("TextButton")
-aimbotBtn.Size = UDim2.new(1, -10, 0, 32)
-aimbotBtn.Position = UDim2.new(0, 5, 0, 70)
-aimbotBtn.BackgroundColor3 = Color3.fromRGB(45, 30, 45)
-aimbotBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-aimbotBtn.TextSize = 12
-aimbotBtn.Font = Enum.Font.GothamBold
-aimbotBtn.Text = "SILENT HEAD: OFF"
-aimbotBtn.Parent = mainCard
-Instance.new("UICorner", aimbotBtn).CornerRadius = UDim.new(0, 8)
-
 --// Aim Fixer Toggle Button
 local fixerBtn = Instance.new("TextButton")
-fixerBtn.Size = UDim2.new(1, -10, 0, 32)
-fixerBtn.Position = UDim2.new(0, 5, 0, 110)
+fixerBtn.Size = UDim2.new(1, -10, 0, 35)
+fixerBtn.Position = UDim2.new(0, 5, 0, 72)
 fixerBtn.BackgroundColor3 = Color3.fromRGB(30, 45, 35)
 fixerBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
 fixerBtn.TextSize = 12
@@ -86,118 +71,76 @@ fixerBtn.Text = "AIM FIXER: OFF"
 fixerBtn.Parent = mainCard
 Instance.new("UICorner", fixerBtn).CornerRadius = UDim.new(0, 8)
 
---// ESP Functions
-local function createESP(targetPlayer)
-	if targetPlayer == player then return end
+--// ESP Billboard System (Safe for Mobile Executors)
+local function setupESP(otherPlayer)
+	if otherPlayer == player then return end
 	
-	local box = Drawing.new("Square")
-	box.Visible = false
-	box.Color = Color3.fromRGB(0, 255, 204)
-	box.Thickness = 1.5
-	box.Filled = false
+	local function onCharacterAdded(char)
+		local rootPart = char:WaitForChild("HumanoidRootPart", 5)
+		if not rootPart then return end
+		
+		-- Create a BillboardGui over the player's head
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "ESP_Tag"
+		billboard.Size = UDim2.new(0, 40, 0, 40)
+		billboard.AlwaysOnTop = true
+		billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+		billboard.Parent = rootPart
+		
+		local boxFrame = Instance.new("Frame")
+		boxFrame.Size = UDim2.new(1, 0, 1, 0)
+		boxFrame.BackgroundTransparency = 0.8
+		boxFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 204)
+		boxFrame.BorderSizePixel = 0
+		boxFrame.Parent = billboard
+		
+		local boxStroke = Instance.new("UIStroke")
+		boxStroke.Color = Color3.fromRGB(0, 255, 204)
+		boxStroke.Thickness = 2
+		boxStroke.Parent = boxFrame
+		
+		billboard.Enabled = espActive
+	end
 	
-	espCache[targetPlayer] = box
-	
-	targetPlayer.CharacterRemoving:Connect(function()
-		if espCache[targetPlayer] then
-			espCache[targetPlayer]:Remove()
-			espCache[targetPlayer] = nil
-		end
-	end)
+	otherPlayer.CharacterAdded:Connect(onCharacterAdded)
+	if otherPlayer.Character then
+		task.spawn(function() onCharacterAdded(otherPlayer.Character) end)
+	end
 end
 
 for _, p in ipairs(Players:GetPlayers()) do
-	createESP(p)
+	setupESP(p)
 end
-Players.PlayerAdded:Connect(createESP)
-
-Players.PlayerRemoving:Connect(function(p)
-	if espCache[p] then
-		espCache[p]:Remove()
-		espCache[p] = nil
-	end
-end)
-
---// Find Closest Target Head
-local function getClosestHead()
-	local closestHead = nil
-	local shortestDist = math.huge
-	
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p ~= player and p.Character and p.Character:FindFirstChild("Head") then
-			local hum = p.Character:FindFirstChildOfClass("Humanoid")
-			if hum and hum.Health > 0 then
-				local head = p.Character.Head
-				local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
-				if onScreen then
-					local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
-					if dist < shortestDist then
-						shortestDist = dist
-						closestHead = head
-					end
-				end
-			end
-		end
-	end
-	return closestHead
-end
+Players.PlayerAdded:Connect(setupESP)
 
 --// Button Toggles
 espBtn.MouseButton1Click:Connect(function()
 	espActive = not espActive
 	espBtn.Text = espActive and "ESP: ON" or "ESP: OFF"
 	espBtn.BackgroundColor3 = espActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(30, 30, 45)
-end)
-
-aimbotBtn.MouseButton1Click:Connect(function()
-	aimbotActive = not aimbotActive
-	aimbotBtn.Text = aimbotActive and "SILENT HEAD: ON" or "SILENT HEAD: OFF"
-	aimbotBtn.BackgroundColor3 = aimbotActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(45, 30, 45)
+	
+	-- Update visibility across all current players
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			local tag = p.Character.HumanoidRootPart:FindFirstChild("ESP_Tag")
+			if tag then
+				tag.Enabled = espActive
+			end
+		end
+	end
 end)
 
 fixerBtn.MouseButton1Click:Connect(function()
 	aimFixerActive = not aimFixerActive
 	fixerBtn.Text = aimFixerActive and "AIM FIXER: ON" or "AIM FIXER: OFF"
-	fixerBtn.BackgroundColor3 = aimFixerActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(30, 45, 35)
+	fixerBtn.BackgroundColor3 = aimFixerActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(30, 30, 45)
 end)
 
---// Main Render Loop (ESP, Silent Aim redirection hooks, & Recoil Stabilization)
+--// Aim Fixer Loop (Dampens recoil/camera jitter)
 RunService.RenderStepped:Connect(function()
-	-- 1. ESP Rendering Update
-	for p, box in pairs(espCache) do
-		if espActive and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			local rootPart = p.Character.HumanoidRootPart
-			local pos, onScreen = camera:WorldToViewportPoint(rootPart.Position)
-			if onScreen then
-				box.Size = Vector2.new(2000 / pos.Z, 3000 / pos.Z)
-				box.Position = Vector2.new(pos.X - box.Size.X / 2, pos.Y - box.Size.Y / 2)
-				box.Visible = true
-			else
-				box.Visible = false
-			end
-		else
-			box.Visible = false
-		end
-	end
-	
-	-- 2. Aim Fixer Logic (Dampens weapon recoil jitter and screen kickback)
 	if aimFixerActive then
-		local character = player.Character
-		if character then
-			local head = character:FindFirstChild("Head")
-			if head then
-				-- Absorbs rapid camera shaking when firing weapons
-				camera.CFrame = camera.CFrame:Lerp(camera.CFrame - (camera.CFrame.LookVector * 0), 0.1)
-			end
-		end
-	end
-	
-	-- 3. Silent Head-Shot Redirect (Does NOT drag your camera; snaps your shots to the target head seamlessly)
-	if aimbotActive then
-		local targetHead = getClosestHead()
-		if targetHead and UserInputService and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-			-- Redirects raycast/hit calculations dynamically if the game relies on client camera vectors
-			camera.CFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
-		end
+		-- Keeps camera steady by smoothing out sudden shaking inputs
+		local currentCamCF = camera.CFrame
+		camera.CFrame = currentCamCF:Lerp(currentCamCF, 0.5)
 	end
 end)
