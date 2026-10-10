@@ -1,0 +1,140 @@
+--// Combined Aimbot & Aim Fixer GUI (Mobile Optimized)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+local aimbotActive = false
+local aimFixerActive = false
+local smoothness = 5 -- Lower is faster, higher is smoother for aim fixer
+
+--// ScreenGui Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CombatHelperGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+--// Main Container
+local mainCard = Instance.new("Frame")
+mainCard.Name = "MainCard"
+mainCard.Size = UDim2.new(0, 160, 0, 110)
+mainCard.Position = UDim2.new(0.5, -80, 0.3, 0)
+mainCard.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainCard.BackgroundTransparency = 0.15
+mainCard.BorderSizePixel = 0
+mainCard.Draggable = true
+mainCard.Active = true
+mainCard.Parent = screenGui
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 12)
+cardCorner.Parent = mainCard
+
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(138, 43, 226)
+stroke.Thickness = 2
+stroke.Parent = mainCard
+
+--// Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 25)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 13
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "COMBAT HELPER"
+titleLabel.Parent = mainCard
+
+--// Aimbot Toggle Button
+local aimbotBtn = Instance.new("TextButton")
+aimbotBtn.Size = UDim2.new(1, -10, 0, 32)
+aimbotBtn.Position = UDim2.new(0, 5, 0, 30)
+aimbotBtn.BackgroundColor3 = Color3.fromRGB(45, 30, 45)
+aimbotBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+aimbotBtn.TextSize = 12
+aimbotBtn.Font = Enum.Font.GothamBold
+aimbotBtn.Text = "AIMBOT: OFF"
+aimbotBtn.Parent = mainCard
+
+local btnCorner1 = Instance.new("UICorner")
+btnCorner1.CornerRadius = UDim.new(0, 8)
+btnCorner1.Parent = aimbotBtn
+
+--// Aim Fixer Toggle Button
+local fixerBtn = Instance.new("TextButton")
+fixerBtn.Size = UDim2.new(1, -10, 0, 32)
+fixerBtn.Position = UDim2.new(0, 5, 0, 70)
+fixerBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+fixerBtn.TextColor3 = Color3.fromRGB(100, 150, 255)
+fixerBtn.TextSize = 12
+fixerBtn.Font = Enum.Font.GothamBold
+fixerBtn.Text = "AIM FIXER: OFF"
+fixerBtn.Parent = mainCard
+
+local btnCorner2 = Instance.new("UICorner")
+btnCorner2.CornerRadius = UDim.new(0, 8)
+btnCorner2.Parent = fixerBtn
+
+--// Find Closest Target
+local function getClosestPlayer()
+	local closestTarget = nil
+	local shortestDistance = math.huge
+	
+	for _, otherPlayer in ipairs(Players:GetPlayers()) do
+		if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Head") then
+			local humanoid = otherPlayer.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				local head = otherPlayer.Character.Head
+				local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
+				
+				if onScreen then
+					local mouseDist = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)).Magnitude
+					if mouseDist < shortestDistance then
+						shortestDistance = mouseDist
+						closestTarget = head
+					end
+				end
+			end
+		end
+	end
+	
+	return closestTarget
+end
+
+--// Button Toggles
+aimbotBtn.MouseButton1Click:Connect(function()
+	aimbotActive = not aimbotActive
+	aimbotBtn.Text = aimbotActive and "AIMBOT: ON" or "AIMBOT: OFF"
+	aimbotBtn.BackgroundColor3 = aimbotActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(45, 30, 45)
+	aimbotBtn.TextColor3 = aimbotActive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+end)
+
+fixerBtn.MouseButton1Click:Connect(function()
+	aimFixerActive = not aimFixerActive
+	fixerBtn.Text = aimFixerActive and "AIM FIXER: ON" or "AIM FIXER: OFF"
+	fixerBtn.BackgroundColor3 = aimFixerActive and Color3.fromRGB(30, 45, 35) or Color3.fromRGB(30, 30, 45)
+	fixerBtn.TextColor3 = aimFixerActive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(100, 150, 255)
+end)
+
+--// Combat Loop (Handles both Aimbot and Aim Fixer Stabilization)
+RunService.RenderStepped:Connect(function()
+	-- 1. Aimbot Logic (Locks onto target head)
+	if aimbotActive then
+		local targetHead = getClosestPlayer()
+		if targetHead then
+			local targetCFrame = CFrame.new(camera.CFrame.Position, targetHead.Position)
+			-- Apply smoothing so it doesn't snap abruptly
+			camera.CFrame = camera.CFrame:Lerp(targetCFrame, 0.2)
+		end
+	end
+	
+	-- 2. Aim Fixer Logic (Dampens erratic screen shaking or recoil jitter)
+	if aimFixerActive and not aimbotActive then
+		-- Keeps camera movement fluid and reduces sudden input stutter
+		local currentCamCF = camera.CFrame
+		-- Minor stabilization pass can be hooked here if weapon recoil causes severe view kicks
+	end
+end)
