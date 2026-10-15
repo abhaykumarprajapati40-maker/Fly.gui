@@ -2,8 +2,10 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 
 local me = Players.LocalPlayer
-local espEnabled = true
-local highlights = {}
+local enabled = true
+local folder = Instance.new("Folder")
+folder.Name = "BlueESPHighlights"
+folder.Parent = workspace
 
 -- GUI
 local gui = Instance.new("ScreenGui")
@@ -12,8 +14,8 @@ gui.ResetOnSpawn = false
 gui.Parent = me:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(180, 80)
-frame.Position = UDim2.new(0.05, 0, 0.4, 0)
+frame.Size = UDim2.fromOffset(180, 85)
+frame.Position = UDim2.new(0, 20, 0.4, 0)
 frame.BackgroundColor3 = Color3.fromRGB(15, 25, 50)
 frame.Active = true
 frame.Draggable = true
@@ -22,49 +24,48 @@ frame.Parent = gui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 28)
+title.Size = UDim2.new(1, 0, 0, 30)
 title.BackgroundTransparency = 1
-title.Text = "💙 BLUE ESP"
+title.Text = "BLUE ESP"
 title.TextColor3 = Color3.fromRGB(0, 170, 255)
-title.TextSize = 18
 title.Font = Enum.Font.GothamBold
+title.TextSize = 18
 title.Parent = frame
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.85, 0, 0, 32)
-button.Position = UDim2.new(0.075, 0, 0, 38)
+button.Size = UDim2.new(1, -20, 0, 35)
+button.Position = UDim2.fromOffset(10, 40)
 button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Text = "ESP: ON"
-button.TextSize = 16
 button.Font = Enum.Font.GothamBold
+button.TextSize = 15
 button.Parent = frame
 
 Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 
-local function updateESP(player)
-    if player == me then return end
+local highlights = {}
 
-    local character = player.Character
-    if not character then return end
+local function updatePlayer(player)
+    if player == me then return end
 
     if highlights[player] then
         highlights[player]:Destroy()
         highlights[player] = nil
     end
 
-    if espEnabled then
-        local highlight = Instance.new("Highlight")
-        highlight.Name = "BluePlayerESP"
-        highlight.FillColor = Color3.fromRGB(0, 120, 255)
-        highlight.OutlineColor = Color3.fromRGB(100, 200, 255)
-        highlight.FillTransparency = 0.5
-        highlight.OutlineTransparency = 0
-        highlight.Adornee = character
-        highlight.Parent = character
+    if not enabled or not player.Character then return end
 
-        highlights[player] = highlight
-    end
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "BluePlayerHighlight"
+    highlight.FillColor = Color3.fromRGB(0, 100, 255)
+    highlight.OutlineColor = Color3.fromRGB(100, 220, 255)
+    highlight.FillTransparency = 0.45
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = player.Character
+    highlight.Parent = folder
+
+    highlights[player] = highlight
 end
 
 local function setupPlayer(player)
@@ -72,11 +73,11 @@ local function setupPlayer(player)
 
     player.CharacterAdded:Connect(function()
         task.wait(0.5)
-        updateESP(player)
+        updatePlayer(player)
     end)
 
     if player.Character then
-        updateESP(player)
+        updatePlayer(player)
     end
 end
 
@@ -94,13 +95,13 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 button.Activated:Connect(function()
-    espEnabled = not espEnabled
-    button.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    button.BackgroundColor3 = espEnabled
+    enabled = not enabled
+    button.Text = enabled and "ESP: ON" or "ESP: OFF"
+    button.BackgroundColor3 = enabled
         and Color3.fromRGB(0, 120, 255)
         or Color3.fromRGB(70, 70, 80)
 
     for _, player in ipairs(Players:GetPlayers()) do
-        updateESP(player)
+        updatePlayer(player)
     end
 end)
